@@ -3,6 +3,25 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const AuthContext = createContext(undefined);
 const API_BASE = `${import.meta.env.VITE_API_URL || ''}/api`.replace(/\/+$/, '');
 
+const parseResponse = async (response) => {
+  const contentType = response.headers.get('content-type') || '';
+  const text = await response.text();
+
+  if (!text) {
+    throw new Error(`API returned an empty response (HTTP ${response.status})`);
+  }
+
+  if (!contentType.includes('application/json')) {
+    throw new Error(`API returned non-JSON data (HTTP ${response.status}). Check VITE_API_URL.`);
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`API returned invalid JSON (HTTP ${response.status})`);
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('crm_token'));
@@ -23,7 +42,7 @@ export const AuthProvider = ({ children }) => {
             Authorization: `Bearer ${token}`,
           },
         });
-        const data = await res.json();
+        const data = await parseResponse(res);
         if (data.success && data.user) {
           setUser(data.user);
         } else {
@@ -48,7 +67,7 @@ export const AuthProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
+      const data = await parseResponse(res);
 
       if (data.success && data.token) {
         localStorage.setItem('crm_token', data.token);
@@ -69,7 +88,7 @@ export const AuthProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password, role, phone }),
       });
-      const data = await res.json();
+      const data = await parseResponse(res);
 
       if (data.success && data.token) {
         localStorage.setItem('crm_token', data.token);

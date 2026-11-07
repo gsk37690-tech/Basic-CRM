@@ -5,6 +5,25 @@
 
 const API_BASE = `${import.meta.env.VITE_API_URL || ''}/api`.replace(/\/+$/, '');
 
+async function parseResponse(response) {
+  const contentType = response.headers.get('content-type') || '';
+  const text = await response.text();
+
+  if (!text) {
+    throw new Error(`API returned an empty response (HTTP ${response.status})`);
+  }
+
+  if (!contentType.includes('application/json')) {
+    throw new Error(`API returned non-JSON data (HTTP ${response.status}). Check VITE_API_URL.`);
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`API returned invalid JSON (HTTP ${response.status})`);
+  }
+}
+
 // Helper to retrieve token from localStorage
 const getAuthHeaders = () => {
   const token = localStorage.getItem('crm_token');
@@ -27,7 +46,7 @@ async function request(endpoint, options = {}) {
 
   try {
     const response = await fetch(url, config);
-    const data = await response.json();
+    const data = await parseResponse(response);
 
     if (!response.ok) {
       throw new Error(data.message || `Request failed with status ${response.status}`);

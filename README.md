@@ -387,8 +387,13 @@ If deploying the frontend independently:
    - **Build Command**: `npm run build`
    - **Output Directory**: `dist`
 3. Add Environment Variable:
-   - `VITE_API_URL` = `https://your-render-backend.onrender.com`
-4. Deploy the project. The Vite single-page application will be served with full client-side routing.
+   - `VITE_API_URL` = `https://your-render-backend.onrender.com` (no trailing `/api`)
+4. Redeploy after adding or changing `VITE_API_URL`; Vite embeds `VITE_*` variables during the build.
+
+The Render API must also set `CLIENT_ORIGIN` to the exact Vercel deployment URL, for example:
+`https://basic-crm.vercel.app`. For a custom domain, use that domain instead.
+
+5. Deploy the project. The Vite single-page application will be served with full client-side routing.
 
 ---
 

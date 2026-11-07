@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { connectMongo } from '../db/mongo.ts';
 dotenv.config();
@@ -12,28 +11,35 @@ export interface DatabaseConfig {
 
 export const dbConfig: DatabaseConfig = {
   uri: process.env.MONGODB_URI || '',
-  uri: process.env.MONGODB_URI || '',
   options: {
     serverSelectionTimeoutMS: 5000,
   },
 };
 
-export async function connectMongoDB(): Promise<{ connected: boolean; mode: string }> {
-  const mongoUri = process.env.MONGODB_URI;
+let dbStatus = {
+  connected: false,
+  mode: 'Local development store',
+};
 
+export async function connectMongoDB(uri = process.env.MONGODB_URI): Promise<{ connected: boolean; mode: string }> {
+  const mongoUri = uri?.trim();
   if (mongoUri) {
+    process.env.MONGODB_URI = mongoUri;
     const maskedUri = mongoUri.replace(/:([^@]+)@/, ':****@');
     console.log(`[MongoDB] Connecting to MongoDB: ${maskedUri}`);
     await connectMongo();
-    return {
+    dbStatus = {
       connected: true,
       mode: 'MongoDB',
     };
+    return dbStatus;
   }
 
   console.log('[MongoDB] MONGODB_URI not set; using the local development store.');
-  return {
-    connected: false,
-    mode: 'Local development store',
-  };
+  dbStatus = { connected: false, mode: 'Local development store' };
+  return dbStatus;
+}
+
+export function getDbStatus(): { connected: boolean; mode: string } {
+  return dbStatus;
 }
