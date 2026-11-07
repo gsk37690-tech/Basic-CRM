@@ -84,7 +84,7 @@ This CRM application provides end-to-end sales lifecycle tracking:
 
 ### Database & Storage
 - **Database**: MongoDB Atlas via `mongoose` ODM
-- **Dual-Mode Persistence**: Automatically connects to MongoDB Atlas cluster via `MONGODB_URI`; falls back to an in-memory persistent store with pre-seeded test data if offline.
+- **MongoDB Authentication**: When `MONGODB_URI` is configured, users and authentication data are stored in the MongoDB `users` collection. Local development without MongoDB uses the built-in development store.
 - **Relational Integrity**: Foreign key references using `mongoose.Schema.Types.ObjectId` with `ref` and `.populate()`.
 - **Indexing**: Compound and unique indexes on email, status, assigned user, and search fields.
 
@@ -312,11 +312,15 @@ NODE_ENV=development
 JWT_SECRET=college_crm_jwt_super_secret_key_2026
 
 # MongoDB Atlas Connection String
-# Leave unset or empty to use the built-in Dual-Mode persistent fallback
+# Set this to the MongoDB database used by the API
 MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.abcde.mongodb.net/college_crm?retryWrites=true&w=majority
 
 # CORS Allowed Origin for Production Deployment
 CLIENT_ORIGIN=http://localhost:3000
+
+# Set this on the Vercel frontend to the deployed Render API URL.
+# Leave empty when the frontend and API share one origin.
+VITE_API_URL=
 ```
 
 ---
@@ -375,15 +379,15 @@ The application will start on:
    - `CLIENT_ORIGIN` = `https://your-frontend-app.vercel.app`
 6. Click **Deploy Web Service**.
 
-### Frontend Deployment (Netlify or Vercel)
+### Frontend Deployment (Vercel)
 If deploying the frontend independently:
-1. Import the repository into [Vercel](https://vercel.com/) or [Netlify](https://www.netlify.com/).
+1. Import the repository into [Vercel](https://vercel.com/).
 2. Configure build settings:
    - **Framework Preset**: `Vite`
    - **Build Command**: `npm run build`
    - **Output Directory**: `dist`
 3. Add Environment Variable:
-   - `VITE_API_BASE_URL` = `https://your-render-backend.onrender.com`
+   - `VITE_API_URL` = `https://your-render-backend.onrender.com`
 4. Deploy the project. The Vite single-page application will be served with full client-side routing.
 
 ---

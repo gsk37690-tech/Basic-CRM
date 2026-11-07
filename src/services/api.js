@@ -3,7 +3,7 @@
  * Provides modular HTTP methods for Auth, Leads, Deals, Contacts, FollowUps, Activities, and Users
  */
 
-const API_BASE = '/api';
+const API_BASE = `${import.meta.env.VITE_API_URL || ''}/api`.replace(/\/+$/, '');
 
 // Helper to retrieve token from localStorage
 const getAuthHeaders = () => {

@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { db } from '../db/connection.ts';
 import { IUser, UserRole } from '../models/types.ts';
+import { userRepository } from '../repositories/userRepository.ts';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'college_crm_jwt_super_secret_key_2026';
 
@@ -11,7 +11,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'college_crm_jwt_super_secret_key_2
  */
 export const authService = {
   async authenticateUser(email: string, passwordPlain: string): Promise<{ token: string; user: Omit<IUser, 'passwordHash'> } | null> {
-    const user = db.getUserByEmail(email);
+    const user = await userRepository.findByEmail(email);
     if (!user) return null;
 
     const isMatch = await bcrypt.compare(passwordPlain, user.passwordHash);
@@ -32,17 +32,19 @@ export const authService = {
   },
 
   async registerUser(name: string, email: string, passwordPlain: string, role: UserRole, phone?: string): Promise<{ token: string; user: Omit<IUser, 'passwordHash'> } | null> {
-    const existing = db.getUserByEmail(email);
+    const normalizedEmail = email.trim().toLowerCase();
+    const existing = await userRepository.findByEmail(normalizedEmail);
     if (existing) return null;
 
     const passwordHash = await bcrypt.hash(passwordPlain, 10);
-    const newUser = db.createUser({
+    const newUser = await userRepository.create({
       name,
-      email,
+      email: normalizedEmail,
       passwordHash,
       role,
       phone: phone || '',
     });
+    if (!newUser) return null;
 
     const token = jwt.sign(
       {
@@ -58,8 +60,8 @@ export const authService = {
     return { token, user: safeUser };
   },
 
-  getUserById(id: string): Omit<IUser, 'passwordHash'> | null {
-    const user = db.getUserById(id);
+  async getUserById(id: string): Promise<Omit<IUser, 'passwordHash'> | null> {
+    const user = await userRepository.findById(id);
     if (!user) return null;
     const { passwordHash, ...safeUser } = user;
     return safeUser;

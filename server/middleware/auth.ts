@@ -1,15 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { db } from '../db/connection.ts';
 import { IUser } from '../models/types.ts';
+import { userRepository } from '../repositories/userRepository.ts';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'college_crm_jwt_secret_key_2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'college_crm_jwt_super_secret_key_2026';
 
 export interface AuthenticatedRequest extends Request {
   user?: IUser;
 }
 
-export const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const authenticateToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -19,7 +19,7 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string };
-    const user = db.getUserById(decoded.id);
+    const user = await userRepository.findById(decoded.id);
 
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid token: User does not exist' });

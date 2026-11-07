@@ -1,10 +1,10 @@
 import { Response } from 'express';
-import { db } from '../db/connection.ts';
 import { AuthenticatedRequest } from '../middleware/auth.ts';
+import { userRepository } from '../repositories/userRepository.ts';
 
-export const getUsers = (req: AuthenticatedRequest, res: Response) => {
+export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const users = db.getUsers().map(u => ({
+    const users = (await userRepository.findAll()).map(u => ({
       id: u.id,
       name: u.name,
       email: u.email,
@@ -18,7 +18,7 @@ export const getUsers = (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
-export const updateUserRole = (req: AuthenticatedRequest, res: Response) => {
+export const updateUserRole = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { role } = req.body;
@@ -27,7 +27,7 @@ export const updateUserRole = (req: AuthenticatedRequest, res: Response) => {
       return res.status(400).json({ success: false, message: 'Role is required' });
     }
 
-    const updated = db.updateUser(id, { role });
+    const updated = await userRepository.updateRole(id, role);
     if (!updated) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }

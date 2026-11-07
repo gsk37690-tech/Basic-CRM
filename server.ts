@@ -24,11 +24,18 @@ async function startServer() {
   await connectMongoDB();
 
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   // CORS middleware for production deployment (Render backend + Netlify/Vercel frontend)
   app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', process.env.CLIENT_ORIGIN || '*');
+    const allowedOrigins = (process.env.CLIENT_ORIGIN || '').split(',').map(origin => origin.trim()).filter(Boolean);
+    const requestOrigin = req.headers.origin;
+    if (allowedOrigins.length === 0) {
+      res.header('Access-Control-Allow-Origin', '*');
+    } else if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+      res.header('Access-Control-Allow-Origin', requestOrigin);
+      res.header('Vary', 'Origin');
+    }
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     if (req.method === 'OPTIONS') {
@@ -56,7 +63,7 @@ async function startServer() {
       status: 'healthy',
       app: 'Basic CRM College Project',
       timestamp: new Date().toISOString(),
-      mode: process.env.MONGODB_URI ? 'MongoDB Atlas' : 'Local In-Memory / File Persistent Store',
+      mode: process.env.MONGODB_URI ? 'MongoDB' : 'Local development store',
     });
   });
 

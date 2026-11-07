@@ -59,7 +59,7 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
-export const getMe = (req: AuthenticatedRequest, res: Response) => {
+export const getMe = async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) {
     return res.status(401).json({ success: false, message: 'Not authenticated' });
   }

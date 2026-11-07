@@ -1,6 +1,0 @@
-{
-  "name": "Basic CRM - Sales & Customer Relationship Management",
-  "description": "Full-stack Customer Relationship Management (CRM) college project with role-based access, lead tracking, follow-ups, pipeline management, and academic submission tools.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
