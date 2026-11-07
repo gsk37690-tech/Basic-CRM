@@ -1,5 +1,12 @@
 import bcrypt from 'bcryptjs';
+import mongoose from 'mongoose';
 import { IUser, ILead, IActivity, IFollowUp, IContact, IDeal } from '../models/types.ts';
+import { UserModel } from '../models/UserModel.ts';
+import { LeadModel } from '../models/LeadModel.ts';
+import { ContactModel } from '../models/ContactModel.ts';
+import { DealModel } from '../models/DealModel.ts';
+import { ActivityModel } from '../models/ActivityModel.ts';
+import { FollowUpModel } from '../models/FollowUpModel.ts';
 
 // In-Memory & Persistent Dual Store
 class DatabaseService {
@@ -19,8 +26,7 @@ class DatabaseService {
   private async initDatabase() {
     this.mongoUri = process.env.MONGODB_URI || null;
     if (this.mongoUri) {
-      console.log(`[Database] Connecting to MongoDB Atlas URI: ${this.mongoUri.replace(/:([^@]+)@/, ':****@')}`);
-      // In production/connected mode with real Atlas cluster, Mongoose connection can hook in here.
+      console.log(`[Database] MongoDB URI configured: ${this.mongoUri.replace(/:([^@]+)@/, ':****@')}`);
     } else {
       console.log('[Database] Running in Dual-Mode Local Store (Pre-seeded College Project Database)');
     }
@@ -372,6 +378,23 @@ class DatabaseService {
       createdAt: new Date().toISOString(),
     };
     this.users.push(newUser);
+
+    // Save directly to MongoDB Atlas / Compass if connected
+    if (mongoose.connection.readyState === 1) {
+      UserModel.create({
+        name: user.name,
+        email: user.email,
+        passwordHash: user.passwordHash,
+        role: user.role,
+        phone: user.phone || '',
+      })
+        .then(doc => {
+          console.log(`[MongoDB Compass Sync] Created user "${doc.name}" in collection 'users'. Doc ID: ${doc._id}`);
+          newUser.id = doc._id.toString();
+        })
+        .catch(err => console.error('[MongoDB Error writing user]:', err.message));
+    }
+
     return newUser;
   }
 
@@ -379,6 +402,14 @@ class DatabaseService {
     const index = this.users.findIndex(u => u.id === id);
     if (index === -1) return undefined;
     this.users[index] = { ...this.users[index], ...updates };
+
+    if (mongoose.connection.readyState === 1) {
+      UserModel.updateOne(
+        { email: this.users[index].email },
+        { $set: updates }
+      ).catch(err => console.error('[MongoDB Error updating user]:', err.message));
+    }
+
     return this.users[index];
   }
 
@@ -437,6 +468,22 @@ class DatabaseService {
       updatedAt: new Date().toISOString(),
     };
     this.leads.unshift(newLead);
+
+    if (mongoose.connection.readyState === 1) {
+      LeadModel.create({
+        name: data.name,
+        company: data.company,
+        email: data.email,
+        phone: data.phone || '',
+        source: data.source,
+        status: data.status,
+        quality: data.quality,
+        assignedTo: mongoose.isValidObjectId(data.assignedTo) ? data.assignedTo : new mongoose.Types.ObjectId(),
+        estimatedValue: data.estimatedValue,
+        notes: data.notes || '',
+      }).catch(err => console.error('[MongoDB Error writing lead]:', err.message));
+    }
+
     return newLead;
   }
 

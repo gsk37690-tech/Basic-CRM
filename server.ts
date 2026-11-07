@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 import authRoutes from './server/routes/authRoutes.ts';
@@ -13,7 +14,7 @@ import userRoutes from './server/routes/userRoutes.ts';
 import dashboardRoutes from './server/routes/dashboardRoutes.ts';
 import exportRoutes from './server/routes/exportRoutes.ts';
 import { errorHandler } from './server/middleware/errorHandler.ts';
-import { connectMongoDB } from './server/config/db.ts';
+import { connectMongoDB, getDbStatus } from './server/config/db.ts';
 
 dotenv.config();
 
@@ -50,13 +51,55 @@ async function startServer() {
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/export', exportRoutes);
 
+  // Database Connection Status & Configuration APIs
+  app.get('/api/db/status', (req, res) => {
+    res.json(getDbStatus());
+  });
+
+  app.post('/api/db/connect', async (req, res) => {
+    try {
+      const { uri } = req.body;
+      if (!uri || typeof uri !== 'string' || !uri.trim()) {
+        return res.status(400).json({ success: false, message: 'MongoDB connection URI string is required' });
+      }
+
+      const cleanUri = uri.trim();
+      process.env.MONGODB_URI = cleanUri;
+
+      // Update .env file on disk
+      try {
+        const envPath = path.resolve(__dirname, '.env');
+        let envContent = '';
+        if (fs.existsSync(envPath)) {
+          envContent = fs.readFileSync(envPath, 'utf-8');
+        }
+        if (envContent.includes('MONGODB_URI=')) {
+          envContent = envContent.replace(/MONGODB_URI=.*/, `MONGODB_URI=${cleanUri}`);
+        } else {
+          envContent += `\nMONGODB_URI=${cleanUri}\n`;
+        }
+        fs.writeFileSync(envPath, envContent, 'utf-8');
+      } catch (e: any) {
+        console.error('[.env file update error]:', e.message);
+      }
+
+      const result = await connectMongoDB(cleanUri);
+      return res.json({ success: result.connected, ...result });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, message: err.message });
+    }
+  });
+
   // Health check endpoint
   app.get('/api/health', (req, res) => {
+    const dbStatus = getDbStatus();
     res.json({
       status: 'healthy',
       app: 'Basic CRM College Project',
       timestamp: new Date().toISOString(),
-      mode: process.env.MONGODB_URI ? 'MongoDB Atlas' : 'Local In-Memory / File Persistent Store',
+      mode: dbStatus.mode,
+      connected: dbStatus.connected,
+      database: dbStatus.database,
     });
   });
 
