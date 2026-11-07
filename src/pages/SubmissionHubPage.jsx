@@ -22,6 +22,8 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 
+const API_BASE = `${import.meta.env.VITE_API_URL || ''}/api`.replace(/\/+$/, '');
+
 export const SubmissionHubPage = () => {
   const { token, user } = useAuth();
   const [activeTab, setActiveTab] = useState('rubric'); // rubric | er | schemas | postman | readme | credentials | walkthrough
@@ -38,7 +40,7 @@ export const SubmissionHubPage = () => {
 
   const fetchDbStatus = async () => {
     try {
-      const res = await fetch('/api/db/status');
+      const res = await fetch(`${API_BASE}/db/status`);
       const data = await res.json();
       setDbStatus(data);
     } catch (e) {
@@ -53,7 +55,7 @@ export const SubmissionHubPage = () => {
     setDbConnecting(true);
     setDbMsg(null);
     try {
-      const res = await fetch('/api/db/connect', {
+      const res = await fetch(`${API_BASE}/db/connect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uri: mongoUriInput.trim() }),

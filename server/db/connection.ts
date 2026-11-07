@@ -18,9 +18,127 @@ class DatabaseService {
   private deals: IDeal[] = [];
   private isConnected: boolean = false;
   private mongoUri: string | null = null;
+  private ready: Promise<void>;
 
   constructor() {
-    this.initDatabase();
+    this.ready = this.initDatabase();
+  }
+
+  async waitUntilReady(): Promise<void> {
+    await this.ready;
+  }
+
+  async hydrateFromMongo(): Promise<void> {
+    if (mongoose.connection.readyState !== 1) return;
+
+    const [users, leads, activities, followUps, contacts, deals] = await Promise.all([
+      UserModel.find().lean(),
+      LeadModel.find().lean(),
+      ActivityModel.find().lean(),
+      FollowUpModel.find().lean(),
+      ContactModel.find().lean(),
+      DealModel.find().lean(),
+    ]);
+
+    if (users.length > 0) {
+      this.users = users.map(user => ({
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        passwordHash: user.passwordHash,
+        role: user.role,
+        phone: user.phone || '',
+        createdAt: new Date(user.createdAt).toISOString(),
+      }));
+    }
+
+    if (leads.length > 0) {
+      this.leads = leads.map(lead => ({
+        id: lead._id.toString(),
+        name: lead.name,
+        company: lead.company,
+        email: lead.email,
+        phone: lead.phone || '',
+        source: lead.source as ILead['source'],
+        status: lead.status as ILead['status'],
+        quality: lead.quality as ILead['quality'],
+        assignedTo: lead.assignedTo.toString(),
+        assignedToName: this.users.find(user => user.id === lead.assignedTo.toString())?.name,
+        estimatedValue: lead.estimatedValue,
+        notes: lead.notes || '',
+        convertedContactId: lead.convertedContactId?.toString(),
+        convertedDealId: lead.convertedDealId?.toString(),
+        createdAt: new Date(lead.createdAt).toISOString(),
+        updatedAt: new Date(lead.updatedAt).toISOString(),
+      }));
+    }
+
+    if (activities.length > 0) {
+      this.activities = activities.map(activity => ({
+        id: activity._id.toString(),
+        leadId: activity.leadId?.toString(),
+        dealId: activity.dealId?.toString(),
+        type: activity.type,
+        summary: activity.summary,
+        details: activity.details || '',
+        performedBy: activity.performedBy.toString(),
+        performedByName: this.users.find(user => user.id === activity.performedBy.toString())?.name,
+        createdAt: new Date(activity.createdAt).toISOString(),
+      }));
+    }
+
+    if (followUps.length > 0) {
+      this.followUps = followUps.map(followUp => ({
+        id: followUp._id.toString(),
+        leadId: followUp.leadId.toString(),
+        leadName: this.leads.find(lead => lead.id === followUp.leadId.toString())?.name,
+        company: this.leads.find(lead => lead.id === followUp.leadId.toString())?.company,
+        scheduledDate: followUp.scheduledDate,
+        scheduledTime: followUp.scheduledTime,
+        type: followUp.type,
+        status: followUp.status,
+        notes: followUp.notes || '',
+        assignedTo: followUp.assignedTo.toString(),
+        assignedToName: this.users.find(user => user.id === followUp.assignedTo.toString())?.name,
+        createdAt: new Date(followUp.createdAt).toISOString(),
+        completedAt: followUp.completedAt ? new Date(followUp.completedAt).toISOString() : undefined,
+      }));
+    }
+
+    if (contacts.length > 0) {
+      this.contacts = contacts.map(contact => ({
+        id: contact._id.toString(),
+        name: contact.name,
+        company: contact.company,
+        email: contact.email,
+        phone: contact.phone || '',
+        position: contact.position,
+        leadId: contact.leadId?.toString(),
+        assignedTo: contact.assignedTo.toString(),
+        assignedToName: this.users.find(user => user.id === contact.assignedTo.toString())?.name,
+        notes: contact.notes || '',
+        createdAt: new Date(contact.createdAt).toISOString(),
+      }));
+    }
+
+    if (deals.length > 0) {
+      this.deals = deals.map(deal => ({
+        id: deal._id.toString(),
+        title: deal.title,
+        value: deal.value,
+        stage: deal.stage as IDeal['stage'],
+        expectedCloseDate: deal.expectedCloseDate,
+        leadId: deal.leadId?.toString(),
+        contactId: deal.contactId?.toString(),
+        company: deal.company,
+        assignedTo: deal.assignedTo.toString(),
+        assignedToName: this.users.find(user => user.id === deal.assignedTo.toString())?.name,
+        probability: deal.probability,
+        notes: deal.notes || '',
+        createdAt: new Date(deal.createdAt).toISOString(),
+        updatedAt: new Date(deal.updatedAt).toISOString(),
+      }));
+    }
   }
 
   private async initDatabase() {
@@ -460,9 +578,10 @@ class DatabaseService {
 
   createLead(data: Omit<ILead, 'id' | 'createdAt' | 'updatedAt'>): ILead {
     const assignedUser = this.getUserById(data.assignedTo);
+    const mongoId = mongoose.connection.readyState === 1 ? new mongoose.Types.ObjectId() : null;
     const newLead: ILead = {
       ...data,
-      id: `lead_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      id: mongoId?.toString() || `lead_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
       assignedToName: assignedUser ? assignedUser.name : 'Unassigned',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -471,6 +590,7 @@ class DatabaseService {
 
     if (mongoose.connection.readyState === 1) {
       LeadModel.create({
+        _id: mongoId,
         name: data.name,
         company: data.company,
         email: data.email,
@@ -481,6 +601,8 @@ class DatabaseService {
         assignedTo: mongoose.isValidObjectId(data.assignedTo) ? data.assignedTo : new mongoose.Types.ObjectId(),
         estimatedValue: data.estimatedValue,
         notes: data.notes || '',
+      }).then(doc => {
+        newLead.id = doc._id.toString();
       }).catch(err => console.error('[MongoDB Error writing lead]:', err.message));
     }
 
@@ -503,12 +625,22 @@ class DatabaseService {
       assignedToName,
       updatedAt: new Date().toISOString(),
     };
+    if (mongoose.connection.readyState === 1 && mongoose.isValidObjectId(id)) {
+      LeadModel.findByIdAndUpdate(id, updates, { new: true }).catch(err =>
+        console.error('[MongoDB Error updating lead]:', err.message),
+      );
+    }
     return this.leads[index];
   }
 
   deleteLead(id: string): boolean {
     const initialLen = this.leads.length;
     this.leads = this.leads.filter(l => l.id !== id);
+    if (mongoose.connection.readyState === 1 && mongoose.isValidObjectId(id)) {
+      LeadModel.findByIdAndDelete(id).catch(err =>
+        console.error('[MongoDB Error deleting lead]:', err.message),
+      );
+    }
     return this.leads.length < initialLen;
   }
 

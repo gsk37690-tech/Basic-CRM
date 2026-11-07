@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCrm } from '../context/CrmContext.jsx';
+const API_BASE = `${import.meta.env.VITE_API_URL || ''}/api`.replace(/\/+$/, '');
 import { useAuth } from '../context/AuthContext.jsx';
 import { ShieldAlert, Mail, Check } from 'lucide-react';
 
@@ -14,7 +15,7 @@ export const UsersManagementPage = () => {
   const handleRoleChange = async (userId, newRole) => {
     try {
       setUpdatingId(userId);
-      const res = await fetch(`/api/users/${userId}/role`, {
+      const res = await fetch(`${API_BASE}/users/${userId}/role`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

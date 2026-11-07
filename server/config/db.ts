@@ -1,4 +1,6 @@
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
+import { db } from '../db/connection.ts';
 import { connectMongo } from '../db/mongo.ts';
 dotenv.config();
 
@@ -27,7 +29,10 @@ export async function connectMongoDB(uri = process.env.MONGODB_URI): Promise<{ c
     process.env.MONGODB_URI = mongoUri;
     const maskedUri = mongoUri.replace(/:([^@]+)@/, ':****@');
     console.log(`[MongoDB] Connecting to MongoDB: ${maskedUri}`);
+    await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 10000 });
     await connectMongo();
+    await db.waitUntilReady();
+    await db.hydrateFromMongo();
     dbStatus = {
       connected: true,
       mode: 'MongoDB',

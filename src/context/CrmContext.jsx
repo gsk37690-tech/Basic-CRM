@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useAuth } from './AuthContext.jsx';
 
 const CrmContext = createContext(undefined);
+const API_BASE = `${import.meta.env.VITE_API_URL || ''}/api`.replace(/\/+$/, '');
 
 export const CrmProvider = ({ children }) => {
   const { token, isAuthenticated } = useAuth();
@@ -58,7 +59,7 @@ export const CrmProvider = ({ children }) => {
         limit: leadFilters.limit.toString(),
       });
 
-      const res = await fetch(`/api/leads?${query.toString()}`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/leads?${query.toString()}`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) {
         setLeads(data.data);
@@ -75,7 +76,7 @@ export const CrmProvider = ({ children }) => {
     if (!token) return null;
     try {
       setIsLoading(true);
-      const res = await fetch(`/api/leads/${id}`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/leads/${id}`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) {
         setCurrentLead(data.data);
@@ -92,7 +93,7 @@ export const CrmProvider = ({ children }) => {
 
   const createLead = async (leadData) => {
     try {
-      const res = await fetch('/api/leads', {
+      const res = await fetch(`${API_BASE}/leads`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify(leadData),
@@ -114,7 +115,7 @@ export const CrmProvider = ({ children }) => {
 
   const updateLead = async (id, updates) => {
     try {
-      const res = await fetch(`/api/leads/${id}`, {
+      const res = await fetch(`${API_BASE}/leads/${id}`, {
         method: 'PUT',
         headers: authHeaders(),
         body: JSON.stringify(updates),
@@ -136,7 +137,7 @@ export const CrmProvider = ({ children }) => {
 
   const deleteLead = async (id) => {
     try {
-      const res = await fetch(`/api/leads/${id}`, {
+      const res = await fetch(`${API_BASE}/leads/${id}`, {
         method: 'DELETE',
         headers: authHeaders(),
       });
@@ -157,7 +158,7 @@ export const CrmProvider = ({ children }) => {
 
   const convertLead = async (id, dealTitle, expectedCloseDate) => {
     try {
-      const res = await fetch(`/api/leads/${id}/convert`, {
+      const res = await fetch(`${API_BASE}/leads/${id}/convert`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({ dealTitle, expectedCloseDate }),
@@ -184,7 +185,7 @@ export const CrmProvider = ({ children }) => {
     if (!token) return;
     try {
       const query = search ? `?search=${encodeURIComponent(search)}` : '';
-      const res = await fetch(`/api/contacts${query}`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/contacts${query}`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) {
         setContacts(data.data);
@@ -196,7 +197,7 @@ export const CrmProvider = ({ children }) => {
 
   const createContact = async (data) => {
     try {
-      const res = await fetch('/api/contacts', {
+      const res = await fetch(`${API_BASE}/contacts`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify(data),
@@ -218,7 +219,7 @@ export const CrmProvider = ({ children }) => {
 
   const updateContact = async (id, updates) => {
     try {
-      const res = await fetch(`/api/contacts/${id}`, {
+      const res = await fetch(`${API_BASE}/contacts/${id}`, {
         method: 'PUT',
         headers: authHeaders(),
         body: JSON.stringify(updates),
@@ -239,7 +240,7 @@ export const CrmProvider = ({ children }) => {
 
   const deleteContact = async (id) => {
     try {
-      const res = await fetch(`/api/contacts/${id}`, {
+      const res = await fetch(`${API_BASE}/contacts/${id}`, {
         method: 'DELETE',
         headers: authHeaders(),
       });
@@ -263,7 +264,7 @@ export const CrmProvider = ({ children }) => {
     if (!token) return;
     try {
       const query = stage && stage !== 'All' ? `?stage=${encodeURIComponent(stage)}` : '';
-      const res = await fetch(`/api/deals${query}`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/deals${query}`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) {
         setDeals(data.data);
@@ -275,7 +276,7 @@ export const CrmProvider = ({ children }) => {
 
   const createDeal = async (data) => {
     try {
-      const res = await fetch('/api/deals', {
+      const res = await fetch(`${API_BASE}/deals`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify(data),
@@ -297,7 +298,7 @@ export const CrmProvider = ({ children }) => {
 
   const updateDeal = async (id, updates) => {
     try {
-      const res = await fetch(`/api/deals/${id}`, {
+      const res = await fetch(`${API_BASE}/deals/${id}`, {
         method: 'PUT',
         headers: authHeaders(),
         body: JSON.stringify(updates),
@@ -319,7 +320,7 @@ export const CrmProvider = ({ children }) => {
 
   const deleteDeal = async (id) => {
     try {
-      const res = await fetch(`/api/deals/${id}`, {
+      const res = await fetch(`${API_BASE}/deals/${id}`, {
         method: 'DELETE',
         headers: authHeaders(),
       });
@@ -343,7 +344,7 @@ export const CrmProvider = ({ children }) => {
     if (!token) return;
     try {
       const query = status && status !== 'All' ? `?status=${encodeURIComponent(status)}` : '';
-      const res = await fetch(`/api/followups${query}`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/followups${query}`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) {
         setFollowUps(data.data);
@@ -355,7 +356,7 @@ export const CrmProvider = ({ children }) => {
 
   const createFollowUp = async (data) => {
     try {
-      const res = await fetch('/api/followups', {
+      const res = await fetch(`${API_BASE}/followups`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify(data),
@@ -377,7 +378,7 @@ export const CrmProvider = ({ children }) => {
 
   const updateFollowUp = async (id, updates) => {
     try {
-      const res = await fetch(`/api/followups/${id}`, {
+      const res = await fetch(`${API_BASE}/followups/${id}`, {
         method: 'PATCH',
         headers: authHeaders(),
         body: JSON.stringify(updates),
@@ -399,7 +400,7 @@ export const CrmProvider = ({ children }) => {
 
   const deleteFollowUp = async (id) => {
     try {
-      const res = await fetch(`/api/followups/${id}`, {
+      const res = await fetch(`${API_BASE}/followups/${id}`, {
         method: 'DELETE',
         headers: authHeaders(),
       });
@@ -423,7 +424,7 @@ export const CrmProvider = ({ children }) => {
       const params = new URLSearchParams();
       if (leadId) params.append('leadId', leadId);
       if (dealId) params.append('dealId', dealId);
-      const res = await fetch(`/api/activities?${params.toString()}`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/activities?${params.toString()}`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) {
         setActivities(data.data);
@@ -435,7 +436,7 @@ export const CrmProvider = ({ children }) => {
 
   const createActivity = async (data) => {
     try {
-      const res = await fetch('/api/activities', {
+      const res = await fetch(`${API_BASE}/activities`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify(data),
@@ -459,7 +460,7 @@ export const CrmProvider = ({ children }) => {
   const fetchTeamUsers = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch('/api/users', { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/users`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) {
         setTeamUsers(data.data);
@@ -472,7 +473,7 @@ export const CrmProvider = ({ children }) => {
   const fetchDashboardStats = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch('/api/dashboard/stats', { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/dashboard/stats`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) {
         setDashboardStats(data.data);
@@ -485,7 +486,7 @@ export const CrmProvider = ({ children }) => {
   const resetDemoData = async () => {
     if (!token) return;
     try {
-      const res = await fetch('/api/dashboard/reset-demo', {
+      const res = await fetch(`${API_BASE}/dashboard/reset-demo`, {
         method: 'POST',
         headers: authHeaders(),
       });
