@@ -1,0 +1,35 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --bg-primary: #090b10;
+    --bg-surface: #12151e;
+    --bg-surface-hover: #181c28;
+    --border-color: #1f2432;
+    --accent-coral: #f43f5e;
+    --accent-coral-hover: #e11d48;
+  }
+
+  body {
+    @apply bg-[#090b10] text-zinc-100 font-sans antialiased min-h-screen selection:bg-rose-500/30 selection:text-white;
+    background-color: #090b10;
+    color: #f1f5f9;
+  }
+
+  /* Custom dark scrollbar for sleek console look */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0d0f16;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #232838;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #32394e;
+  }
+}
