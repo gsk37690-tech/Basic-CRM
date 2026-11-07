@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import {
   Download,
@@ -18,11 +18,58 @@ import {
   Server,
   Globe,
   Check,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 
 export const SubmissionHubPage = () => {
   const { token, user } = useAuth();
   const [activeTab, setActiveTab] = useState('rubric'); // rubric | er | schemas | postman | readme | credentials | walkthrough
+
+  // Database Connection State for MongoDB Compass
+  const [dbStatus, setDbStatus] = useState(null);
+  const [mongoUriInput, setMongoUriInput] = useState('');
+  const [dbConnecting, setDbConnecting] = useState(false);
+  const [dbMsg, setDbMsg] = useState(null);
+
+  useEffect(() => {
+    fetchDbStatus();
+  }, []);
+
+  const fetchDbStatus = async () => {
+    try {
+      const res = await fetch('/api/db/status');
+      const data = await res.json();
+      setDbStatus(data);
+    } catch (e) {
+      console.error('Failed to fetch db status:', e);
+    }
+  };
+
+  const handleConnectDb = async (e) => {
+    e.preventDefault();
+    if (!mongoUriInput.trim()) return;
+
+    setDbConnecting(true);
+    setDbMsg(null);
+    try {
+      const res = await fetch('/api/db/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uri: mongoUriInput.trim() }),
+      });
+      const data = await res.json();
+      setDbMsg({
+        success: data.success,
+        text: data.message || (data.success ? 'Connected successfully!' : 'Connection failed'),
+      });
+      await fetchDbStatus();
+    } catch (err) {
+      setDbMsg({ success: false, text: `Connection error: ${err.message}` });
+    } finally {
+      setDbConnecting(false);
+    }
+  };
 
   // Interactive API tester state
   const [testEndpoint, setTestEndpoint] = useState('/api/dashboard/stats');
@@ -403,6 +450,85 @@ export const FollowUp = mongoose.model('FollowUp', followUpSchema);`,
             );
           })}
         </div>
+      </div>
+
+      {/* MongoDB Compass & Atlas Live Connection Configuration Panel */}
+      <div className="bg-[#12151e] border border-[#1f2432] rounded-lg p-5 shadow-sm space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-[#1f2432]">
+          <div>
+            <div className="flex items-center gap-2">
+              <Database className="w-4 h-4 text-[#ff4b6e]" />
+              <h2 className="text-sm font-bold text-white">MongoDB Compass & Atlas Live Persistence</h2>
+              {dbStatus?.connected ? (
+                <span className="px-2 py-0.5 rounded text-2xs font-semibold bg-emerald-950/60 text-emerald-400 border border-emerald-800/40 flex items-center gap-1">
+                  <Check className="w-3 h-3" />
+                  <span>Connected: {dbStatus.database}</span>
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded text-2xs font-semibold bg-amber-950/60 text-amber-400 border border-amber-800/40 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  <span>Memory Store (Not Connected to Atlas)</span>
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-zinc-400 mt-1">
+              Connect your MongoDB Atlas cluster URI below so all newly created users, leads, and deals reflect in <strong>MongoDB Compass</strong> in real time.
+            </p>
+          </div>
+
+          <button
+            onClick={fetchDbStatus}
+            className="p-1.5 bg-[#0e1017] border border-[#232838] text-zinc-400 hover:text-white rounded text-xs flex items-center gap-1 self-start sm:self-auto transition-colors"
+            title="Refresh database connection status"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Check Status</span>
+          </button>
+        </div>
+
+        {dbMsg && (
+          <div
+            className={`p-3 rounded text-xs border flex items-center gap-2 ${
+              dbMsg.success
+                ? 'bg-[#0f1d16] border-[#1d3d2c] text-emerald-400'
+                : 'bg-[#241117] border-[#4d1d29] text-[#ff758f]'
+            }`}
+          >
+            {dbMsg.success ? <Check className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4 shrink-0" />}
+            <span>{dbMsg.text}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleConnectDb} className="space-y-2">
+          <label className="block text-2xs font-medium text-zinc-300">
+            MongoDB Connection String (Atlas <code className="text-[#ff4b6e]">mongodb+srv://...</code>):
+          </label>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              value={mongoUriInput}
+              onChange={e => setMongoUriInput(e.target.value)}
+              placeholder="mongodb+srv://<username>:<password>@cluster0.abcde.mongodb.net/college_crm?retryWrites=true&w=majority"
+              className="flex-1 p-2.5 bg-[#0e1017] border border-[#232838] rounded text-xs text-zinc-100 placeholder-zinc-500 font-mono focus:border-[#f43f5e] focus:outline-none transition-colors"
+            />
+            <button
+              type="submit"
+              disabled={dbConnecting || !mongoUriInput.trim()}
+              className="px-4 py-2 bg-[#f43f5e] hover:bg-[#e11d48] text-white rounded text-xs font-semibold shadow-sm shadow-[#f43f5e]/25 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shrink-0"
+            >
+              <Database className="w-3.5 h-3.5" />
+              <span>{dbConnecting ? 'Connecting to Cluster...' : 'Connect & Sync MongoDB'}</span>
+            </button>
+          </div>
+          <div className="flex items-center justify-between text-2xs text-zinc-500 pt-1">
+            <span>
+              💡 In MongoDB Atlas, ensure <strong>Network Access</strong> includes <code className="text-zinc-400">0.0.0.0/0</code> (Allow Access From Anywhere) so the cloud backend can connect.
+            </span>
+            {dbStatus?.uriMasked && (
+              <span className="font-mono text-zinc-400">Active URI: {dbStatus.uriMasked}</span>
+            )}
+          </div>
+        </form>
       </div>
 
       {/* TAB 1: 100-MARK RUBRIC MATRIX */}

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { connectMongo } from '../db/mongo.ts';
 dotenv.config();
@@ -10,6 +11,7 @@ export interface DatabaseConfig {
 }
 
 export const dbConfig: DatabaseConfig = {
+  uri: process.env.MONGODB_URI || '',
   uri: process.env.MONGODB_URI || '',
   options: {
     serverSelectionTimeoutMS: 5000,
